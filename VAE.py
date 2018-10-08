@@ -2,14 +2,14 @@ import tensorflow as tf
 import Model as model
 import numpy as np
 class VAE:
-    def __init__(self,input_shape,batch_size,label_size=10,z_dim = 16,learning_rate=1e-2,sess=None , path=None, alpha = 1):
+    def __init__(self,input_shape,label_size=10,z_dim = 16,learning_rate=1e-2,sess=None , path=None, alpha = 1):
         self.labels = z_dim
         self.learning_rate = learning_rate
-        self.batch_size = batch_size
         self.y_depth = label_size
         self.input_shape = input_shape
         self.alpha = alpha
-        self.shape = [batch_size] + input_shape
+        self.batch_size = tf.placeholder(dtype=tf.int32,shape=(),name="batch_size")
+        self.shape = [None] + input_shape
         self.model = model.Model(labels=self.labels,input_shape = self.shape)
         self.__build_net__()
         self.sess = sess
@@ -39,9 +39,9 @@ class VAE:
             axis=0
         )
 
-        self.Z = tf.placeholder(dtype=tf.float32,shape=[self.X.shape[0].value, self.labels])
+        self.Z = tf.placeholder(dtype=tf.float32,shape=[None, int(self.labels)])
         tf.set_random_seed(777)
-        dec_z = z_std_dev * tf.random_normal(z_std_dev.shape,0,1,dtype=tf.float32) + z_mean
+        dec_z = z_std_dev * tf.random_normal([self.batch_size, int(self.labels)],0,1,dtype=tf.float32) + z_mean
 
         self.pred_X = self.model.decoder(self.model.zy_concat(self.Z,self.s))   #using inference time
         decoded_X =self.model.decoder(self.model.zy_concat(dec_z,self.s))       #using training time
@@ -63,10 +63,11 @@ class VAE:
                         feed_dict={
                                    self.X:X,
                                    self.y:y,
+                                   self.batch_size: len(y),
                                    self.dropout:dropout}
                         )
 
-    def predict(self,Z,y):
+    def predict(self, Z, y):
         return self.sess.run(self.pred_X,feed_dict={
-            self.Z:Z, self.y:y ,self.dropout:0
+            self.Z:Z, self.y:y ,self.dropout:0, self.batch_size: len(y)
         })

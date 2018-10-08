@@ -21,7 +21,7 @@ class Model:
         # y = tf.cast(y,tf.float32)
         # y = tf.expand_dims(y,axis=1)
 
-        return tf.concat([z,y*z.shape[1]],1)
+        return tf.concat([z,y],1)
 
 
     def encoder(self,X,name='encoder',sess=None):
